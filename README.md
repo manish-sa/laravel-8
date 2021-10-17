@@ -3,7 +3,7 @@
 Below is the steps to setup the project
 
 - [clone the repo].
-- [ run **composer install command**]
+- [ run **composer install** command]
 - [ create database **CREATE DATABASE interview CHARACTER SET utf8 COLLATE utf8_general_ci;**]
 - [ replace env.sample file to .env and set database credential]
 - [ run migration command database **php artisan migrate**]
