@@ -8,9 +8,11 @@
     <!-- Styles -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
 
-<link defer rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js" integrity="sha512-VEd+nq25CkR676O+pLBnDW09R7VQX9Mdiij052gVCp5yVH3jGtH70Ho/UUv4mJDsEdTvqRCFZg0NKGiojGnUCw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" integrity="sha512-vKMx8UnXk60zUwyUnUPM3HbQo8QfmNx7+ltw8Pm5zLusl1XIfwcxo8DbWCqMGKaWeNxWA8yrx5v3SaVpMvR3CA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <div class="content-wrapper">
     <section class="content">
@@ -56,24 +58,31 @@
                         <div class="card-body">
                             <table class="table table-bordered table-responsive-lg">
                                 <tr>
+                                    <th>{{ Form::checkbox(null, null, '', array('id'=>'select-all')) }}</th>
                                     <th>Email</th>
                                     <th>Mobile</th>
                                     <th>Score</th>
                                     <th>Role</th>
                                     <th>Industry</th>
+                                    <th>Views</th>
                                 </tr>
                                 @foreach ($users as $user)
                                     <tr>
+                                        <th>{{ Form::checkbox(null, $user->id, null, array('class'=>'view-user')) }}</th>
                                         <td>{{ $user->email}}</td>
                                         <td>{{ $user->mobile}}</td>
                                         <td>{{ $user->profile_score}}</td>
                                         <td>{{ $user->role}}</td>
                                         <td>{{ $user->industry}}</td>
+                                        <td>{{ $user->views}}</td>
                                     </tr>
                                 @endforeach
                             </table>
-                            {{ $users->render() }} 
+                            {!! $users->appends(Request::except('page'))->render() !!}
                             Total Records {{ $users->total() }}
+                            <div class="form-group">
+                                {{ Form::button('Mark as View', array('class'=>'btn btn-success mark-view'))}}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -81,3 +90,48 @@
         </div>
     </section>
 </div>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#select-all').change(function() {
+            if($(this).is(':checked')){
+                $('.view-user').prop('checked', true);
+            }else{
+                $('.view-user').prop('checked', false);
+            }
+        });
+
+        $(".mark-view").click(function(){
+            var ids = [];
+            $(".view-user:checked").each(function(){
+                ids.push($(this).val());
+            });
+
+            if(ids.length == 0){
+                toastr.error('Please select one record');
+                return false;
+            }
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url:"{{url('/mark_view_user')}}",
+                type: "POST",
+                dataType: 'json',
+                data: {"ids[]" : ids, _token: '{{csrf_token()}}'},
+                success: function(res) {
+                    if(res.success){
+                        toastr.success('Success!!');
+                        toastr.options.onHidden = function() { 
+                            location.reload();
+                        } 
+                    }else{
+                        toastr.error('Something want wrong');
+                    }
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    toastr.error('Something want wrong');
+                }
+            });
+        });
+    })
+</script>

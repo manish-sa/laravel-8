@@ -20,3 +20,4 @@ Route::get('/', function () {
 
 Route::resource('user', UserController::class);
 Route::any('search', UserController::class. '@index');
+Route::any('mark_view_user', UserController::class. '@store');

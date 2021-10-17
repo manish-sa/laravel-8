@@ -15,4 +15,13 @@ class UserViews extends Model
      * @var string
      */
     protected $table = 'user_views';
+
+    protected $fillable = ['user_id', 'views'];
+
+    public $timestamps = false;
+
+    public function roles()
+    {
+        return $this->belongsToMany('App\Models\User',  'user_views', 'user_id', 'id');
+    }
 }

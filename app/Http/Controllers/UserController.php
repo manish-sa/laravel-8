@@ -9,6 +9,7 @@ use App\Models\UserIndustries;
 use App\Models\UserRoles;
 use App\Models\UserViews;
 use Illuminate\Http\Request;
+use DB;
 
 class UserController extends Controller
 {
@@ -17,7 +18,7 @@ class UserController extends Controller
      *
      * @var string
      */
-    protected $paginate = '10';
+    protected $paginate = '5';
 
 
     /**
@@ -34,18 +35,34 @@ class UserController extends Controller
         $users = User::query();
         $users->join('user_roles', 'user_roles.user_id', '=', 'users.id');
         $users->join('user_industries', 'user_industries.user_id', '=', 'users.id');
+
         $users->join('roles', 'user_roles.role_id', '=', 'roles.id');
         $users->join('industries', 'user_industries.industry_id', '=', 'industries.id');
-        $users->select('users.id', 'users.email', 'users.mobile', 'users.profile_score', 'roles.name as role', 'industries.name as industry');
+
+        $users->leftJoin('user_views', 'user_views.user_id', '=', 'users.id');
+
+        $users->select(
+                'users.id', 'users.email', 
+                'users.mobile', 'users.profile_score', 
+                'roles.name as role', 'industries.name as industry',
+                DB::raw("COALESCE(SUM(user_views.views), 0) as views")
+            );
         
+        $users->groupBy('users.id', 'user_industries.user_id', 'user_industries.industry_id');
         if(!empty($request->role)){
             $users->whereIn('roles.id', $request->role);
         }
 
-        if(!empty($request->sortable)){
-            // $users->orderBy($request->sortable);
+        if($request->sortable == 'view_all'){
+            $users->orderBy('views');
+        }else if($request->sortable == 'score'){
+            $users->having('views', '<=', 0);
+            $users->orderBy('users.profile_score', 'desc');
+        }else if($request->sortable == 'view'){
+            $users->orderBy('views', 'desc');
+        }else{
+            $users->having('views', '<=', 0);
         }
-
         if(!empty($request->industry)){
             $users->whereIn('industries.id', $request->industry);
         }
@@ -71,7 +88,22 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        try{
+            $insert = array();
+            foreach ($request->ids as $key => $id) {
+                $temp = array();
+                $temp = [
+                    'user_id' => $id,
+                    'views' => '1'
+                ];
+                UserViews::create($temp);
+                // $insert[] = $temp;
+            }
+            // DB::insert('user_views', $insert); // this and also insert the record in bulk insert
+            return response()->json(['success' => true]);
+        }catch(Exception $e ){
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -105,7 +137,7 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        //
+       // 
     }
 
     /**
@@ -128,9 +160,11 @@ class UserController extends Controller
     private function sortable()
     {
         return [
+            '' => '--Select--',
             'view_all' => 'View All',
             'new_reg' => 'New Registered Members',
-            'users.profile_score' => 'Profile Score',
+            'score' => 'Profile Score',
+            'view' => 'View',
         ];
     }
 }
