@@ -121,9 +121,7 @@
                 success: function(res) {
                     if(res.success){
                         toastr.success('Success!!');
-                        toastr.options.onHidden = function() { 
-                            location.reload();
-                        } 
+                        location.reload();                       
                     }else{
                         toastr.error('Something want wrong');
                     }
